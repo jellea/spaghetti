@@ -1,10 +1,54 @@
 body{
-    font-family: Didot-italic;
+    font-family: Didot-italic, Georgia;
     font-weight: 100;
+    color: #444;
+    background-color: #FEFFF8;
+    margin: 0;
+    padding: 0;
+}
+
+* { box-sizing: border-box; }
+
+.contextmenu {
+    display: inline-block;
+    position: absolute;
+    margin: 0;
+    right: 20px;
+    padding: 2px;
+    background-color: white;
+    border: 1px solid #444;
+    z-index: 10;
+    opacity: 0.95;
+}
+
+.contextmenu li {
+    list-style-type: none;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.contextmenu li:not(:last-child) {
+    border-bottom: 1px solid #eee;
+}
+
+.contextmenu li:hover {
+    background-color: #e1e1e1;
+}
+
+.maincanvas {
+    z-index: 0;
+    cursor: copy;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
 }
 
 .node {
     margin-left: 100px;
+    z-index: 5;
+    cursor: grab;
 }
 
 .node .canvas {
@@ -25,35 +69,49 @@ body{
 .input {
     position: absolute;
     width: 100px;
+    margin-top: 10px;
     margin-left: -110px;
     text-align: right;
 }
+
+.input:nth-child(3) {
+    margin-top: 2em;
+}
+
 .input:after {
+    margin-top: -0.8em;
+    margin-left: 107px;
+}
+
+.io:after {
     content: "";
     position: absolute;
     display: block;
-    background-color: #222;
+    background-color: #444;
     width: 7px;
     height: 7px;
-    margin-top: -0.8em;
-    margin-left: 107px;
     border-radius: 5px;
 }
 
 .output {
     position: absolute;
-    margin-top: 100px;
+    margin-top: 95px;
     margin-left: 210px;
 }
 
-.output:before {
-    content: "";
-    position: absolute;
-    display: block;
-    background-color: #222;
-    width: 7px;
-    height: 7px;
-    margin-left: -12px;
-    margin-top: 0.4em;
-    border-radius: 5px;
+.output:after {
+    margin-left: -14px;
+    margin-top: -0.8em;
+}
+
+.oscil .canvas {
+    background-color: #FBCBCB;
+}
+
+.gain .canvas {
+    background-color: #8EFFE0;
+}
+
+.context .canvas {
+    background-color: #E7E6FF;
 }
