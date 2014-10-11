@@ -7,11 +7,15 @@ body{
     padding: 0;
 }
 
+#app {
+    padding-right: 14rem;
+}
+
 * { box-sizing: border-box; }
 
 .contextmenu {
     display: inline-block;
-    position: absolute;
+    position: fixed;
     margin: 0;
     right: 20px;
     padding: 4px;
@@ -23,6 +27,10 @@ body{
 
 .contextmenu li {
     list-style-type: none;
+    width: 14em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     padding: 8px;
     cursor: pointer;
 }
@@ -48,13 +56,13 @@ body{
     display: inline-block;
     margin-left: 100px;
     z-index: 50;
-    cursor: grab;
+    cursor: move;
 }
 
 .node .canvas {
     display: block;
     width: 200px;
-    height: 125px;
+    height: 140px;
     border: #222 solid 1px;
     border-radius: 5px;
 }
@@ -75,12 +83,32 @@ body{
 }
 
 .input:nth-child(3) {
-    margin-top: 2em;
+    margin-top: 30px;
+}
+
+.input:nth-child(4) {
+    margin-top: 50px;
+}
+
+.input:nth-child(5) {
+    margin-top: 70px;
+}
+
+.input:nth-child(6) {
+    margin-top: 90px;
+}
+
+.input:nth-child(7) {
+    margin-top: 110px;
 }
 
 .input:after {
     margin-top: -0.8em;
     margin-left: 107px;
+}
+.io{
+    text-transform: lowercase;
+    cursor: crosshair;
 }
 
 .io:after {
@@ -91,16 +119,15 @@ body{
     width: 7px;
     height: 7px;
     border-radius: 5px;
-    box-sizing: border-box;
 }
 
-.io:hover:after {
-    box-shadow:
+.io:hover {
+    text-decoration: underline;
 }
 
 .output {
     position: absolute;
-    margin-top: 95px;
+    margin-top: 110px;
     margin-left: 210px;
 }
 
@@ -109,14 +136,14 @@ body{
     margin-top: -0.8em;
 }
 
-.oscil .canvas {
+.OscillatorNode .canvas {
     background-color: #FBCBCB;
 }
 
-.gain .canvas {
+.BiquadFilterNode .canvas {
     background-color: #8EFFE0;
 }
 
-.context .canvas {
+.AudioDestinationNode .canvas {
     background-color: #E7E6FF;
 }
