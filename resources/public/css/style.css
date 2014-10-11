@@ -1,0 +1,59 @@
+body{
+    font-family: Didot-italic;
+    font-weight: 100;
+}
+
+.node {
+    margin-left: 100px;
+}
+
+.node .canvas {
+    display: block;
+    width: 200px;
+    height: 125px;
+    border: #222 solid 1px;
+    border-radius: 5px;
+}
+
+.node h2{
+    font-size: 1.3rem;
+    font-style: italic;
+    font-weight: 100;
+    margin-bottom: 5px;
+}
+
+.input {
+    position: absolute;
+    width: 100px;
+    margin-left: -110px;
+    text-align: right;
+}
+.input:after {
+    content: "";
+    position: absolute;
+    display: block;
+    background-color: #222;
+    width: 7px;
+    height: 7px;
+    margin-top: -0.8em;
+    margin-left: 107px;
+    border-radius: 5px;
+}
+
+.output {
+    position: absolute;
+    margin-top: 100px;
+    margin-left: 210px;
+}
+
+.output:before {
+    content: "";
+    position: absolute;
+    display: block;
+    background-color: #222;
+    width: 7px;
+    height: 7px;
+    margin-left: -12px;
+    margin-top: 0.4em;
+    border-radius: 5px;
+}
