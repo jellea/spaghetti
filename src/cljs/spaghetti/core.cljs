@@ -9,23 +9,20 @@
 
 (defonce ctx (js/webkitAudioContext.))
 
-(defonce node-types {:OscillatorNode [{:n :type :choises ["sine" "triangle" "square"]} :frequency :detune]
-                     :GainNode [:input :gain]
-                     :DelayNode [:input :delayTime]
-                     :AudioBufferSourceNode [:playbackRate :loop :loopStart :loopEnd :buffer]
-                     :PannerNode [:input :panningModel :distanceModel :refDistance :maxDistance :rolloffFactor :coneInnerAngle :coneOuterAngle :coneOuterGain]
-                     :ConvolverNode [:input :buffer :normalize]
-                     :DynamicsCompressorNode [:input :threshold :knee :ratio :reduction :attack :release]
-                     :BiquadFilterNode [:input :type :frequency :Q :detune :gain]
-                     :WaveShaperNode [:input :curve :oversample]
-                     :AudioDestinationNode [:input]
-                     :ChannelSplitterNode []
-                     :ChannelMergerNode []
-                     :MediaElementAudioSourceNode []
-                     :MediaStreamAudioSourceNode []
-                     :MediaStreamAudioDestinationNode [:stream]})
+(defonce node-types {:OscillatorNode {:create-fn #(.createOscillator ctx) :io [{:n :type :choises ["sine" "triangle" "square"]} :frequency :detune]}
+                     :GainNode {:create-fn #(.createGain ctx) :io [:input :gain]}
+                     :DelayNode {:create-fn #(.createDelay ctx) :io [:input :delayTime]}
+                     :AudioBufferSourceNode {:create-fn #(.createBuffer ctx) :io [:playbackRate :loop :loopStart :loopEnd :buffer]}
+                     :PannerNode {:create-fn #(.createPanner ctx) :io [:input :panningModel :distanceModel :refDistance :maxDistance :rolloffFactor :coneInnerAngle :coneOuterAngle :coneOuterGain]}
+                     :ConvolverNode {:create-fn #(.createConvolver ctx) :io [:input :buffer :normalize]}
+                     :DynamicsCompressorNode {:create-fn #(.createDynamicsCompressor ctx) :io [:input :threshold :knee :ratio :reduction :attack :release]}
+                     :BiquadFilterNode {:create-fn #(.createBiquadFilter ctx) :io [:input :type :frequency :Q :detune :gain]}
+                     :WaveShaperNode {:create-fn #(.createWaveShaper ctx) :io [:input :curve :oversample]}
+                     :AudioDestinationNode {:create-fn #(.log js/console "I want to sleep") :io [:input]}
+                     :ChannelSplitterNode {:create-fn #(.createChannelSplitter ctx) :io [:input]}
+                     :ChannelMergerNode {:create-fn #(.createChannelMerger ctx) :io [:input]}})
 
-(defonce app-state (atom {:menu {:x 0 :y 0 :visible false}
+(defonce app-state (atom {:wiring false
                           :nodes [{:type :OscillatorNode :node (.createOscillator ctx)} {:type :BiquadFilterNode :node (.createBiquadFilter ctx)} {:type :AudioDestinationNode :node ctx}]
                           :wires [{:x1 300 :y1 165 :x2 400 :y2 65} {:x1 600 :y1 165 :x2 700 :y2 65}]}))
 
@@ -57,8 +54,14 @@
           (html [:svg.maincanvas
                  (om/build-all wire (:wires app) {})])))
 
+(defn start-wiring [])
+(defn make-wire [])
+(defn break-wire [])
+
 (defcomponent port [app owner]
-  (render-state [_ _]
+  (init-state [_]
+              {:selected false})
+  (render-state [_ {:keys [selected]}]
     (html
      (cond
       (= app :output) [:div.io.output "output"]
@@ -66,18 +69,19 @@
       :default [:div.io.input (name app)]))))
 
 (defcomponent audio-node [{:keys [type io node]} owner]
-  (did-mount [this]
-      (let [div       (om/get-node owner)
-            scope     (js/WavyJones ctx (.querySelector div ".canvas"))]
-        (.start node 0)
-        #_(set! (.-value (.-frequency node)) (rand-int 400 1000))
-        (.connect node (.-destination ctx))
+  (did-mount [_]
+    (let [div        (om/get-node owner)
+          scope      (js/WavyJones ctx (.querySelector div ".canvas"))]
+        (if (= type :OscillatorNode)
+          (do
+            (.start node 0)
+            (.connect node (.-destination ctx))))
         (.connect node scope)))
   (render-state [_ _]
     (html
          [:div.node {:class (name type)}
           [:h2 (name type)]
-          (om/build-all port (take 6 (vec (get-in node-types [type]))) {})
+          (om/build-all port (take 6 (vec (get-in node-types [type :io]))) {})
           (om/build port :output {})
           [:svg.canvas]])))
 
