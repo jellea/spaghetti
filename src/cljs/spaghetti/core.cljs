@@ -31,8 +31,9 @@
                                                 (let [amount (* (/ 1 127) (.-amount e))]
                                                      (set! (.-value (.-gain gainnode)) amount)))
                                               (if (= (.-subType msg) "pitchBend")
-                                                (.log js/console (.-value e))
-                                                  (set! (.-value (.-frequency filt)) (.-value e))
+                                                (do
+                                                  (.cancelScheduledValues (.-frequency filt))
+                                                  (.exponentialRampToValueAtTime (.-frequency filt) (.-value e) (+ (.-currentTime ctx) 0.2) ))
                                                   )
                                                   )
                                              ))))
