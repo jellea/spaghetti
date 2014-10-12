@@ -1,0 +1,30 @@
+{
+  "name": "adsr",
+  "version": "0.1.0",
+  "description": "Attack, decay, sustain, release envelope for automating Web Audio API AudioParams.",
+  "main": "index.js",
+  "scripts": {
+    "test": "beefy test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmckegg/adsr.git"
+  },
+  "keywords": [
+    "adsr",
+    "envelope",
+    "attack",
+    "sustain",
+    "decay",
+    "release",
+    "waapi",
+    "AudioParam",
+    "modulator"
+  ],
+  "author": "Matt McKegg",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mmckegg/adsr/issues"
+  },
+  "homepage": "https://github.com/mmckegg/adsr"
+}
