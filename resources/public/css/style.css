@@ -4,7 +4,7 @@ body{
     color: #444;
     background-color: #FEFFF8;
     margin: 0;
-    padding: 0;
+    padding: 0 200px 0 0;
 }
 
 #app {
@@ -12,6 +12,16 @@ body{
 }
 
 * { box-sizing: border-box; }
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@-webkit-keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
 
 .contextmenu {
     display: inline-block;
@@ -27,7 +37,7 @@ body{
 
 .contextmenu li {
     list-style-type: none;
-    width: 14em;
+    width: 9em;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -53,13 +63,18 @@ body{
 }
 
 .node {
+    position: absolute;
+    top: 0px;
+    left: 0px;
     display: inline-block;
     margin-left: 100px;
     z-index: 50;
     cursor: move;
+    -webkit-animation: fadein 0.2s ease-out;
 }
 
 .node .canvas {
+    opacity: 0.8;
     display: block;
     width: 200px;
     height: 140px;
@@ -125,6 +140,18 @@ body{
     text-decoration: underline;
 }
 
+.io .value{
+    opacity: 0.1;
+    position: absolute;
+    margin-left: 1.4em;
+    transition: all 0.3s ease-out;
+    z-index: 200;
+}
+
+.node:hover .value {
+    opacity: 0.9;
+}
+
 .output {
     position: absolute;
     margin-top: 110px;
@@ -136,14 +163,10 @@ body{
     margin-top: -0.8em;
 }
 
-.OscillatorNode .canvas {
-    background-color: #FBCBCB;
-}
-
-.BiquadFilterNode .canvas {
-    background-color: #8EFFE0;
-}
-
-.AudioDestinationNode .canvas {
-    background-color: #E7E6FF;
-}
+.node .canvas {background-color: #fff;}
+.OscillatorNode .canvas {background-color: #FBCBCB;}
+.BiquadFilterNode .canvas {background-color: #8EFFE0;}
+.AudioDestinationNode .canvas {background-color: #E6F0FF;}
+.GainNode .canvas {background-color: #F9FBCB;}
+.MidiNode .canvas {background-color: #FBCBEF;}
+.ADSRNode .canvas {background-color: #DBFBCB;}
