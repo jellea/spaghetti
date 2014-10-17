@@ -148,6 +148,10 @@ body{
     z-index: 200;
 }
 
+.io .number{
+    cursor: ns-resize;
+}
+
 .node:hover .value {
     opacity: 0.9;
 }

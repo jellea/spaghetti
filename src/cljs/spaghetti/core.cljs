@@ -12,33 +12,30 @@
 
 (defonce midi-chan (chan (sliding-buffer 50)))
 
-(defn midi2freq [x]
-  (* 440.0 (Math/pow 2.0 (/ (- x 69.0) 12.0))))
-
 (defonce oscil (.createOscillator ctx))
 (defonce filt (.createBiquadFilter ctx))
 (defonce gainnode (.createGain ctx))
+
+(defn midi2freq [x]
+  (* 440.0 (Math/pow 2.0 (/ (- x 69.0) 12.0))))
 
 (set! (.-setMidiInputSelect midi)
       (fn []
         (let [inputs (-> midi .-devices .-inputs)
               seaboard (first (filter #(= (.-name %) "Seaboard") inputs))]
-          (set! (.-onmidimessage seaboard) #(let [msg (.parseMIDIMessage midi %)
-                                                  e   (.-event msg)]
-                                              (if (= (.-subType msg) "noteOn")
-                                                (set! (.-value (.-frequency oscil)) (midi2freq (.-noteNumber e))))
-                                              (if (= (.-subType msg) "channelAftertouch")
-                                                (let [amount (* (/ 1 127) (.-amount e))]
-                                                     (set! (.-value (.-gain gainnode)) amount)))
-                                              (if (= (.-subType msg) "pitchBend")
-                                                (do
-                                                  (.cancelScheduledValues (.-frequency filt))
-                                                  (.exponentialRampToValueAtTime (.-frequency filt) (.-value e) (+ (.-currentTime ctx) 0.2) ))
-                                                  )
-                                                  )
-                                             ))))
-
-(.initMidi midi nil)
+          (set! (.-onmidimessage seaboard)
+                #(let [msg (.parseMIDIMessage midi %)
+                       e   (.-event msg)]
+                   (if (= (.-subType msg) "noteOn")
+                     (set! (.-value (.-frequency oscil)) (midi2freq (.-noteNumber e))))
+                   (if (= (.-subType msg) "channelAftertouch")
+                     (let [amount (* (/ 1 127) (.-amount e))]
+                       (set! (.-value (.-gain gainnode)) amount)))
+                   (if (= (.-subType msg) "pitchBend")
+                     (do
+                       (.cancelScheduledValues (.-frequency filt))
+                       (.exponentialRampToValueAtTime (.-frequency filt) (.-value e) (+ (.-currentTime ctx) 0.2) )))))
+          (.initMidi midi nil))))
 
 (.connect oscil filt)
 (.connect filt gainnode)
@@ -46,8 +43,7 @@
 
 (go-loop
     (let [msg (<! midi-chan)]
-      (.log js/console msg)
-      ))
+      (.log js/console msg)))
 
 (defonce node-types {:OscillatorNode
                        {:create-fn #(.createOscillator ctx) :io [{:n :type :type :choices :choices ["sine" "triangle" "sawtooth" "square"]
@@ -65,7 +61,6 @@
                      :AudioDestinationNode {:create-fn #(.log js/console "I want to sleep") :io [:input]}
                      :ChannelSplitterNode {:create-fn #(.createChannelSplitter ctx) :io [:input]}
                      :ChannelMergerNode {:create-fn #(.createChannelMerger ctx) :io [:input]}})
-
 
 (defonce app-state (atom {:wiring false
                           :nodes [{:type :MidiNode :node midi :x 0 :y 20 :vals {} :id :midi1}
