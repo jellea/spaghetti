@@ -1,6 +1,9 @@
 (ns spaghetti.webaudio)
 
-(defonce node-types {:OscillatorNode {:create-fn ".createOscillator" :io [{:n :type :type :choices :choices ["sine" "triangle" "sawtooth" "square"]
+(defonce ctx (js/AudioContext.))
+(defonce midi (js/WebMIDIAPIWrapper. true))
+
+(defonce node-types {:OscillatorNode {:create-fn (.createOscillator ctx) :io [{:n :type :type :choices :choices ["sine" "triangle" "sawtooth" "square"]
                                                                            :default "sine"} {:n :frequency :type :number :default 440} {:n :detune :type :number :default 0}]}
                      :MidiNode {:create-fn "js/WebMIDIAPIWrapper." :io [{:n :channel :type :number :default 1} {:n :type :type :choices :choices ["noteon" "noteoff" "poly aftertouch"] :default "noteon"}]}
                      :GainNode {:create-fn ".createGain" :io [:input {:n :gain :type :number :default 1}]}

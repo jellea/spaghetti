@@ -4,27 +4,26 @@
             [om-tools.dom :as dom :include-macros true]
             [goog.events :as events]
             [spaghetti.uuid :refer [make-uuid]]
-            [spaghetti.webaudio :as webaudio]
+            [spaghetti.webaudio :as webaudio :refer [node-types ctx midi]]
             [om-tools.core :refer-macros [defcomponent]]
             [cljs.core.async :as async :refer [<! >! chan put! sliding-buffer close!]]
             [sablono.core :as html :refer-macros [html]]))
 
 (enable-console-print!)
 
-(defonce ctx (js/AudioContext.))
-(defonce midi (js/WebMIDIAPIWrapper. true))
-
 (defonce app-state (atom {:wiring false
                           :menu {:x 0 :y 0 :visible false}
-                          :nodes {}
-                          :wires []}))
+                          :nodes {:out {:x (- (.-innerWidth js/window) 380)
+                                        :y (- (.-innerHeight js/window) 220)
+                                        :id :out :type :AudioDestinationNode :node (.createGain ctx)}}
+                          :wires (hash-set)}))
 
 (defonce wiring (atom {:a nil :b nil}))
 
 (defn add-node
   [app n x y]
   (let [id (make-uuid)]
-    (om/transact! app [:nodes] #(assoc % id {:id id :type n :node (.createOscillator ctx) :x x :y y}))))
+    (om/transact! app [:nodes] #(assoc % id {:id id :type n :node (get-in webaudio/node-types [n :create-fn]) :x x :y y}))))
 
 (defn toggle-menu [{:keys [x y cursor]}]
   (om/update! cursor :menu {:x x :y y :visible (not (:visible (:menu @cursor)))}))
@@ -37,28 +36,6 @@
                 [:li {:onClick #(do (add-node app n (- x 150) (- y 100))
                                     (toggle-menu {:x x :y y :cursor app}))} (str "+ "(name n))])])))
 
-(defn calc-wire [{:keys [a b]} nodes]
-  (let [node-a (get-in nodes [a])
-        node-b (get-in nodes [b])
-        x1 (+ (:x node-a) 300)
-        y1 (+ (:y node-a) 165)
-        x2 (+ (:x node-b) 100)
-        y2 (+ (:y node-b) 65)]
-    {:x1 x1 :y1 y1 :x2 x2 :y2 y2}))
-
-(defcomponent wire [{:keys [wire nodes]} owner]
-  (did-mount [_]
-             (prn "munt"))
-  (render[_]
-         (let [{:keys [x1 y1 x2 y2]} (calc-wire wire nodes)]
-           (html [:line {:x1 x1 :y1 y1 :x2 x2 :y2 y2 :stroke "#444" :stroke-width 1}]))))
-
-(defcomponent wire-canvas [app owner]
-  (render [_]
-          (html [:svg.maincanvas {:onClick #(toggle-menu {:x (.-clientX %) :y (.-clientY %) :cursor app})}
-                 (for [w (:wires app)]
-                   (om/build wire {:wire w :nodes (:nodes app)} {}))])))
-
 (defn start-wiring [{:keys [ab portid cursor]}]
   (swap! wiring assoc ab portid))
 
@@ -70,7 +47,31 @@
                             (reset! wiring {:a nil :b nil})))))
 
 (defn break-wire [cursor wire]
-  (om/transact! cursor))
+  (om/transact! cursor :wires #(filter (fn [w] (identical? w wire)) %)))
+
+(defn calc-wire [{:keys [a b]} nodes]
+  (let [node-a (get-in nodes [a])
+        node-b (get-in nodes [b])
+        x1 (+ (:x node-a) 300)
+        y1 (+ (:y node-a) 165)
+        x2 (+ (:x node-b) 100)
+        y2 (+ (:y node-b) 65)]
+    {:x1 x1 :y1 y1 :x2 x2 :y2 y2}))
+
+(defcomponent wire [{:keys [wire nodes]} owner {:keys [app]}]
+  (will-unmount [_]
+    (.disconnect (:node (get-in nodes [(:a wire)])) (:node (get-in nodes [(:b wire)]))))
+  (did-mount [_]
+    (.connect (:node (get-in nodes [(:a wire)])) (:node (get-in nodes [(:b wire)]))))
+  (render[_]
+         (let [{:keys [x1 y1 x2 y2]} (calc-wire wire nodes)]
+           (html [:line {:onClick #(break-wire app wire) :x1 x1 :y1 y1 :x2 x2 :y2 y2 :stroke "#444" :stroke-width 1}]))))
+
+(defcomponent wire-canvas [app owner]
+  (render [_]
+          (html [:svg.maincanvas {:onClick #(toggle-menu {:x (.-clientX %) :y (.-clientY %) :cursor app})}
+                 (for [w (:wires app)]
+                   (om/build wire {:wire w :nodes (:nodes app)} {:opts {:app app}}))])))
 
 (defcomponent port [app owner {:keys [parentid]}]
   (init-state [_]
@@ -110,11 +111,16 @@
             (handle-drag-event app owner evt-type e))
           (recur))))
   (did-mount [_]
-      (let [node       (om/get-node owner "draggable")
-            mouse-chan (om/get-state owner :mouse-chan)]
-        (events/listen node "mousemove" #(put! mouse-chan [:move %]))
-        (events/listen node "mousedown" #(put! mouse-chan [:down %]))
-        (events/listen node "mouseup" #(put! mouse-chan [:up %]))))
+      (let [htmlelem   (om/get-node owner "draggable")
+            mouse-chan (om/get-state owner :mouse-chan)
+            scope      (js/WavyJones ctx htmlelem)]
+        (.connect node scope)
+        (if (= type :AudioDestinationNode)
+          (.connect node (.-destination ctx))
+          (.start node))
+        (events/listen htmlelem "mousemove" #(put! mouse-chan [:move %]))
+        (events/listen htmlelem "mousedown" #(put! mouse-chan [:down %]))
+        (events/listen htmlelem "mouseup" #(put! mouse-chan [:up %]))))
   (render-state [_ _]
     (html
      [:div.node {:class (name type) :style {:transform (str "translate(" x "px," y "px)")}}
