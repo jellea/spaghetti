@@ -23,7 +23,7 @@
 (defn add-node
   [app n x y]
   (let [id (make-uuid)]
-    (om/transact! app [:nodes] #(assoc % id {:id id :type n :node (get-in webaudio/node-types [n :create-fn]) :x x :y y}))))
+    (om/transact! app [:nodes] #(assoc % id {:id id :type n :node ((get-in webaudio/node-types [n :create-fn])) :x x :y y}))))
 
 (defn toggle-menu [{:keys [x y cursor]}]
   (om/update! cursor :menu {:x x :y y :visible (not (:visible (:menu @cursor)))}))
@@ -47,7 +47,7 @@
                             (reset! wiring {:a nil :b nil})))))
 
 (defn break-wire [cursor wire]
-  (om/transact! cursor :wires #(filter (fn [w] (identical? w wire)) %)))
+  (om/transact! cursor :wires #(filter (fn [w] (not (identical? w wire))) %)))
 
 (defn calc-wire [{:keys [a b]} nodes]
   (let [node-a (get-in nodes [a])
@@ -113,11 +113,11 @@
   (did-mount [_]
       (let [htmlelem   (om/get-node owner "draggable")
             mouse-chan (om/get-state owner :mouse-chan)
+            mount-fn   (get-in node-types [type :mount-fn])
             scope      (js/WavyJones ctx htmlelem)]
+        (if mount-fn
+          (mount-fn node))
         (.connect node scope)
-        (if (= type :AudioDestinationNode)
-          (.connect node (.-destination ctx))
-          (.start node))
         (events/listen htmlelem "mousemove" #(put! mouse-chan [:move %]))
         (events/listen htmlelem "mousedown" #(put! mouse-chan [:down %]))
         (events/listen htmlelem "mouseup" #(put! mouse-chan [:up %]))))
