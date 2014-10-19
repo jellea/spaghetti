@@ -24,10 +24,9 @@ body{
 }
 
 .contextmenu {
-    display: inline-block;
-    position: fixed;
+    display: none;
+    position: absolute;
     margin: 0;
-    right: 20px;
     padding: 4px;
     background-color: white;
     border: 1px solid #444;
@@ -60,6 +59,12 @@ body{
     height: 100%;
     top: 0px;
     left: 0px;
+    cursor: copy;
+}
+
+.maincanvas line:hover {
+    stroke-width: 5px;
+    cursor: not-allowed;
 }
 
 .node {
@@ -69,11 +74,11 @@ body{
     display: inline-block;
     margin-left: 100px;
     z-index: 50;
-    cursor: move;
     -webkit-animation: fadein 0.2s ease-out;
 }
 
 .node .canvas {
+    cursor: move;
     opacity: 0.8;
     display: block;
     width: 200px;

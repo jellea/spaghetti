@@ -3,165 +3,135 @@
   (:require [om.core :as om :include-macros true]
             [om-tools.dom :as dom :include-macros true]
             [goog.events :as events]
+            [spaghetti.uuid :refer [make-uuid]]
+            [spaghetti.webaudio :as webaudio]
             [om-tools.core :refer-macros [defcomponent]]
             [cljs.core.async :as async :refer [<! >! chan put! sliding-buffer close!]]
             [sablono.core :as html :refer-macros [html]]))
 
+(enable-console-print!)
+
 (defonce ctx (js/AudioContext.))
 (defonce midi (js/WebMIDIAPIWrapper. true))
 
-(defonce midi-chan (chan (sliding-buffer 50)))
-
-(defonce oscil (.createOscillator ctx))
-(defonce filt (.createBiquadFilter ctx))
-(defonce gainnode (.createGain ctx))
-
-(defn midi2freq [x]
-  (* 440.0 (Math/pow 2.0 (/ (- x 69.0) 12.0))))
-
-(set! (.-setMidiInputSelect midi)
-      (fn []
-        (let [inputs (-> midi .-devices .-inputs)
-              seaboard (first (filter #(= (.-name %) "Seaboard") inputs))]
-          (set! (.-onmidimessage seaboard)
-                #(let [msg (.parseMIDIMessage midi %)
-                       e   (.-event msg)]
-                   (if (= (.-subType msg) "noteOn")
-                     (set! (.-value (.-frequency oscil)) (midi2freq (.-noteNumber e))))
-                   (if (= (.-subType msg) "channelAftertouch")
-                     (let [amount (* (/ 1 127) (.-amount e))]
-                       (set! (.-value (.-gain gainnode)) amount)))
-                   (if (= (.-subType msg) "pitchBend")
-                     (do
-                       (.cancelScheduledValues (.-frequency filt))
-                       (.exponentialRampToValueAtTime (.-frequency filt) (.-value e) (+ (.-currentTime ctx) 0.2) )))))
-          (.initMidi midi nil))))
-
-(.connect oscil filt)
-(.connect filt gainnode)
-(.connect gainnode (.-destination ctx))
-
-(go-loop
-    (let [msg (<! midi-chan)]
-      (.log js/console msg)))
-
-(defonce node-types {:OscillatorNode
-                       {:create-fn #(.createOscillator ctx) :io [{:n :type :type :choices :choices ["sine" "triangle" "sawtooth" "square"]
-                                                                                :default "sine"} {:n :frequency :type :number :default 440} {:n :detune :type :number :default 0}]}
-                     :MidiNode {:create-fn #(js/WebMIDIAPIWrapper. nil) :io [{:n :channel :type :number :default 1} {:n :type :type :choices :choices ["noteon" "noteoff" "poly aftertouch"] :default "noteon"}]}
-                     :GainNode {:create-fn #(.createGain ctx) :io [:input {:n :gain :type :number :default 1}]}
-                     :DelayNode {:create-fn #(.createDelay ctx) :io [:input :delayTime]}
-                     :AudioBufferSourceNode {:create-fn #(.createBuffer ctx) :io [:playbackRate :loop :loopStart :loopEnd :buffer]}
-                     :PannerNode {:create-fn #(.createPanner ctx) :io [:input :panningModel :distanceModel :refDistance :maxDistance :rolloffFactor :coneInnerAngle :coneOuterAngle :coneOuterGain]}
-                     :ADSRNode {:create-fn #(js/ADSR. ctx) :io [:start :stop {:n :attack :type :number :default 0} {:n :decay :type :number :default 0} {:n :sustain :type :number :default 1} {:n :release :type :number :default 0}]}
-                     :ConvolverNode {:create-fn #(.createConvolver ctx) :io [:input :buffer :normalize]}
-                     :DynamicsCompressorNode {:create-fn #(.createDynamicsCompressor ctx) :io [:input :threshold :knee :ratio :reduction :attack :release]}
-                     :BiquadFilterNode {:create-fn #(.createBiquadFilter ctx) :io [:input {:n :type :type :choices :choices ["lowpass" "highpass" "bandpass" "lowshelf" "highshelf" "peaking" "notch" "allpass"] :default "lowpass"} {:n :frequency :type :number :default 350} {:n :Q :type :number :default 1} {:n :detune :type :number :default 0} {:n :gain :type :number :default 0}]}
-                     :WaveShaperNode {:create-fn #(.createWaveShaper ctx) :io [:input :curve :oversample]}
-                     :AudioDestinationNode {:create-fn #(.log js/console "I want to sleep") :io [:input]}
-                     :ChannelSplitterNode {:create-fn #(.createChannelSplitter ctx) :io [:input]}
-                     :ChannelMergerNode {:create-fn #(.createChannelMerger ctx) :io [:input]}})
-
 (defonce app-state (atom {:wiring false
-                          :nodes [{:type :MidiNode :node midi :x 0 :y 20 :vals {} :id :midi1}
-                                  {:type :OscillatorNode :x 330 :y 30 :node oscil :id :oscil1}
-                                  {:type :BiquadFilterNode :x 640 :y 25 :node filt :id :filter}
-                                  {:type :MidiNode :node midi :x 10 :y 200 :vals {} :id :midi2}
-                                  {:type :MidiNode :node midi :x 0 :y 380 :vals {} :id :midi3}
-                                  {:type :ADSRNode :x 350 :y 250 :node (js/ADSR. ctx) :id :adsr}
-                                  {:type :GainNode :x 650 :y 220 :node gainnode :id :gain}
-                                  {:type :AudioDestinationNode :x 660 :y 400 :node ctx :id :out}]
-                          :wires [
+                          :menu {:x 0 :y 0 :visible false}
+                          :nodes {}
+                          :wires []}))
 
-                                  {:x1 300 :y1 185 :x2 430 :y2 115}
-                                  {:x1 310 :y1 365 :x2 450 :y2 315}
-                                  {:x1 310 :y1 365 :x2 450 :y2 335}
-                                  {:x1 300 :y1 550 :x2 740 :y2 110}
-                                  {:x1 630 :y1 195 :x2 740 :y2 90}
-                                  {:x1 940 :y1 190 :x2 750 :y2 287}
-                                  {:x1 650 :y1 417 :x2 750 :y2 305}
-                                  {:x1 950 :y1 385 :x2 760 :y2 465}
-                                  ]}))
+(defonce wiring (atom {:a nil :b nil}))
 
-(defn add-node [app n]
-  (om/transact! app #(conj % {:type n :node (.createOscillator ctx)})))
+(defn add-node
+  [app n x y]
+  (let [id (make-uuid)]
+    (om/transact! app [:nodes] #(assoc % id {:id id :type n :node (.createOscillator ctx) :x x :y y}))))
 
-(defcomponent contextmenu [{:keys [menu] :as app} owner]
-  (render-state [_ _]
-            (html
-             [:ul.contextmenu {:style {:transform "translate(0px,20px)"}}
-              (for [n (keys node-types)]
-                [:li {:onClick #(add-node app n)} (str "+ "(name n))])])))
+(defn toggle-menu [{:keys [x y cursor]}]
+  (om/update! cursor :menu {:x x :y y :visible (not (:visible (:menu @cursor)))}))
 
-(defcomponent viewport [app owner]
-  (will-mount [_])
+(defcomponent contextmenu [{{x :x y :y visible :visible} :menu :as app} owner]
   (render [_]
           (html
-           [:div
-            (om/build contextmenu (:nodes app) {})
-            (om/build-all audio-node (:nodes app) {:key :id})
-            (om/build wire-canvas app {})])))
+             [:ul.contextmenu {:style {:display (if visible "block" "none") :transform (str "translate(" x "px," y "px)")}}
+              (for [n (keys webaudio/node-types)]
+                [:li {:onClick #(do (add-node app n (- x 150) (- y 100))
+                                    (toggle-menu {:x x :y y :cursor app}))} (str "+ "(name n))])])))
 
-(defn calc-wire [{:keys [in out]}]
-  {:x1 300 :y1 165 :x2 400 :y2 85})
+(defn calc-wire [{:keys [a b]} nodes]
+  (let [node-a (get-in nodes [a])
+        node-b (get-in nodes [b])
+        x1 (+ (:x node-a) 300)
+        y1 (+ (:y node-a) 165)
+        x2 (+ (:x node-b) 100)
+        y2 (+ (:y node-b) 65)]
+    {:x1 x1 :y1 y1 :x2 x2 :y2 y2}))
 
-(defcomponent wire [{:keys [x1 x2 y1 y2]} owner]
-  (render-state [_ _]
-                (html [:line {:x1 x1 :y1 y1 :x2 x2 :y2 y2 :stroke "#444" :stroke-width 1}])))
+(defcomponent wire [{:keys [wire nodes]} owner]
+  (did-mount [_]
+             (prn "munt"))
+  (render[_]
+         (let [{:keys [x1 y1 x2 y2]} (calc-wire wire nodes)]
+           (html [:line {:x1 x1 :y1 y1 :x2 x2 :y2 y2 :stroke "#444" :stroke-width 1}]))))
 
 (defcomponent wire-canvas [app owner]
   (render [_]
-          (html [:svg.maincanvas
-                 (om/build-all wire (:wires app) {})])))
+          (html [:svg.maincanvas {:onClick #(toggle-menu {:x (.-clientX %) :y (.-clientY %) :cursor app})}
+                 (for [w (:wires app)]
+                   (om/build wire {:wire w :nodes (:nodes app)} {}))])))
 
-(defn start-wiring [])
-(defn make-wire [])
-(defn break-wire [])
+(defn start-wiring [{:keys [ab portid cursor]}]
+  (swap! wiring assoc ab portid))
 
-(defcomponent port [app owner]
+(add-watch wiring :b #(let [wires @wiring]
+                        (if (and (not (nil? (:a wires)))
+                                 (not (nil? (:b wires))))
+                          (do
+                            (swap! app-state (fn [w] (update-in w [:wires] (fn [o] (conj o {:a (:a wires) :b (:b wires)})))))
+                            (reset! wiring {:a nil :b nil})))))
+
+(defn break-wire [cursor wire]
+  (om/transact! cursor))
+
+(defcomponent port [app owner {:keys [parentid]}]
   (init-state [_]
               {:selected false
                :value (:default app)})
   (render-state [_ {:keys [selected value]}]
     (html
      (cond
-      (= app :output) [:div.io.output "output"]
-      (= (:type app) :choices) [:div.io.choise.input (str (name (:n app)))
+      (= app :output) [:div.io.output {:onClick #(start-wiring {:ab :a :portid parentid})} "output"]
+      (= (:type app) :choices) [:div.io.choise.input {:onClick #(start-wiring {:ab :b :portid parentid})} (str (name (:n app)))
                                 [:span.value value]]
       (= (:type app) :number) [:div.io.number.input (str (name (:n app)))
                                [:span.value value]]
-      :default [:div.io.input (name app)]))))
+      :default [:div.io.input {:onClick #(start-wiring {:ab :b :portid parentid})} (name app)]))))
 
-(defcomponent audio-node [{:keys [type io node id] :as app} owner]
+(defn handle-drag-event [cursor owner evt-type e]
+  (when (= evt-type :down)
+    (om/set-state! owner :mouse {:offset-top (.-offsetY e)
+                                 :offset-left (.-offsetX e)
+                                 :pressed true}))
+  (when (= evt-type :up)
+    (om/set-state! owner [:mouse :pressed] false))
+  (when (and (= evt-type :move) (om/get-state owner [:mouse :pressed]))
+    (let [{:keys [offset-top offset-left]} (om/get-state owner :mouse)
+          x (- (.-clientX e) 200)
+          y (- (.-clientY e) 120)]
+      (om/transact! cursor #(merge % {:y y :x x})))))
+
+(defcomponent audio-node [{:keys [x y type io node id] :as app} owner]
   (init-state [_]
-    {:x (:x app)
-     :y (:y app)})
+      {:mouse-chan (chan (sliding-buffer 1))
+       :mouse {:offset-top 0 :offset-left 0 :pressed false}})
+  (will-mount [_]
+      (let [mouse-chan (om/get-state owner :mouse-chan)]
+        (go-loop []
+          (let [[evt-type e] (<! mouse-chan)]
+            (handle-drag-event app owner evt-type e))
+          (recur))))
   (did-mount [_]
-    (let [div   (om/get-node owner)
-          scope (js/WavyJones ctx (.querySelector div ".canvas"))]
-        (cond (= type :OscillatorNode)
-          (do
-            (.start node 0)
-            (.connect node scope))
-          (= type :BiquadFilterNode)
-            (do (.connect node scope))
-          (= type :AudioDestinationNode)
-            (do (.connect gainnode scope))
-          (= type :GainNode)
-          (do
-            (set! (.-value (.-gain node)) 0.3)
-            (.connect node scope))
-          )
-
-        ))
-  (render-state [_ {:keys [x y]}]
+      (let [node       (om/get-node owner "draggable")
+            mouse-chan (om/get-state owner :mouse-chan)]
+        (events/listen node "mousemove" #(put! mouse-chan [:move %]))
+        (events/listen node "mousedown" #(put! mouse-chan [:down %]))
+        (events/listen node "mouseup" #(put! mouse-chan [:up %]))))
+  (render-state [_ _]
     (html
-     (let []
-       [:div.node {:class (name type) :style {:transform (str "translate(" x "px," y "px)")}}
-        [:h2 (name type)]
-        (om/build-all port (take 6 (vec (get-in node-types [type :io]))) {:opts {:parentid id}})
+     [:div.node {:class (name type) :style {:transform (str "translate(" x "px," y "px)")}}
+      [:h2 (name type)]
+      ; give number to port
+        (om/build-all port (take 6 (vec (get-in webaudio/node-types [type :io]))) {:opts {:parentid id}})
         (om/build port :output {:opts {:parentid id}})
-        [:svg.canvas]]))))
+        [:svg.canvas {:ref "draggable"}]])))
+
+(defcomponent viewport [app owner]
+  (will-mount [_])
+  (render [_]
+          (html
+           [:div
+            (om/build contextmenu app {})
+            (om/build-all audio-node (vals (:nodes app)) {:key :id})
+            (om/build wire-canvas app {})])))
 
 (defn main []
   (om/root
