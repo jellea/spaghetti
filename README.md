@@ -1,7 +1,14 @@
 # spaghetti
 
 
-## Development
+![Screenshot](http://cl.ly/image/1b1V1w3w2944/Screen%20Shot%202014-10-12%20at%2011.58.23.png)
+
+## Run/Development
+
+Install Leiningen
+```
+brew install leiningen
+```
 
 Start a REPL (in a terminal: `lein repl`, or from Emacs: open a
 clj/cljs file in the project, then do `M-x cider-jack-in`. Make sure
