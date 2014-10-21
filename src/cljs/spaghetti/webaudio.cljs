@@ -1,7 +1,7 @@
 (ns spaghetti.webaudio)
 
 (defonce ctx (js/AudioContext.))
-(defonce midi (js/WebMIDIAPIWrapper. true))
+;(defonce midi (js/WebMIDIAPIWrapper. true))
 
 (defonce node-types {:OscillatorNode {:mount-fn (fn [node] (.start node)) :create-fn #(.createOscillator ctx) :io [{:n :type :type :choices :choices ["sine" "triangle" "sawtooth" "square"]
                                                                            :default "sine"} {:n :frequency :type :number :default 440} {:n :detune :type :number :default 0}]}

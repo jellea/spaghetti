@@ -1,0 +1,19 @@
+.node, .maincanvas {
+    position: absolute;
+}
+
+div[data-path="[cardpath].[spaghetti.devcards].[audio-node]"] + .devcard-rendered-card{
+    display: block;
+    content: "";
+    height: 200px;
+}
+
+.maincanvas{
+    width: 100%;
+    height: 100%;
+}
+
+.patcher {
+    display: block;
+    height: 200px;
+}

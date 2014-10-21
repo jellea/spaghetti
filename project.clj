@@ -19,6 +19,7 @@
                  [weasel "0.4.0-SNAPSHOT"]
                  [leiningen "2.5.0"]
                  [http-kit "2.1.19"]
+                 [devcards "0.1.2-SNAPSHOT"]
                  [sablono "0.2.22"]
                  [prismatic/om-tools "0.3.3"]]
 

@@ -134,7 +134,7 @@
   (will-mount [_])
   (render [_]
           (html
-           [:div
+           [:div.patcher
             (om/build contextmenu app {})
             (om/build-all audio-node (vals (:nodes app)) {:key :id})
             (om/build wire-canvas app {})])))
