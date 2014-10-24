@@ -16,10 +16,11 @@
                  [figwheel "0.1.4-SNAPSHOT"]
                  [environ "1.0.0"]
                  [com.cemerick/piggieback "0.1.3"]
-                 [weasel "0.4.0-SNAPSHOT"]
+                 [weasel "0.4.3-SNAPSHOT"]
                  [leiningen "2.5.0"]
                  [http-kit "2.1.19"]
-                 [devcards "0.1.2-SNAPSHOT"]
+                 [com.cognitect/transit-cljs "0.8.188"]
+;                 [devcards "0.1.2-SNAPSHOT"]
                  [sablono "0.2.22"]
                  [prismatic/om-tools "0.3.3"]]
 
@@ -30,7 +31,7 @@
 
   :uberjar-name "spaghetti.jar"
 
-  :cljsbuild {:builds {:app {:source-paths ["src/cljs"]
+  :cljsbuild {:builds {:app {:source-paths ["src/cljs/spaghetti"]
                              :compiler {:output-to     "resources/public/js/app.js"
                                         :output-dir    "resources/public/js/out"
                                         :source-map    "resources/public/js/out.js.map"
@@ -55,5 +56,7 @@
                        :cljsbuild {:builds {:app
                                             {:source-paths ["env/prod/cljs"]
                                              :compiler
+                                             :preamble ["react/react.min.js" "hammerjs/hammer.js"]
+                                             :externs ["react/externs/react.js" "hammer.extern.js"]
                                              {:optimizations :advanced
                                               :pretty-print false}}}}}})

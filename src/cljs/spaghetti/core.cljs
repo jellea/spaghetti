@@ -3,6 +3,7 @@
   (:require [om.core :as om :include-macros true]
             [om-tools.dom :as dom :include-macros true]
             [goog.events :as events]
+            [cognitect.transit :as t]
             [spaghetti.uuid :refer [make-uuid]]
             [spaghetti.webaudio :as webaudio :refer [node-types ctx midi]]
             [om-tools.core :refer-macros [defcomponent]]
@@ -20,9 +21,29 @@
 
 (defonce wiring (atom {:a nil :b nil}))
 
+(def w (t/writer :json {:handlers {}}))
+(def r (t/reader :json {:handlers {}}))
+
+(defn focus-input [e app owner]
+  (if (or (.-ctrlKey e) (.-metaKey e))
+    (let [node (om/get-node owner)]
+      (set! (.-value node) (t/write w @app))
+      (.select node))))
+
+(defn paste-state [app owner]
+  (let [input-data (.-value (om/get-node owner))
+        data       (t/read r input-data)]
+    (om/update! app data)))
+
+(defcomponent clipboard [app owner]
+  (did-mount [_]
+             (.listen goog/events js/document "keydown" #(focus-input % app owner)))
+  (render [_]
+          (html [:input {:type "textarea" :style {:display "none"} :value "" :onPaste #(paste-state app owner)}])))
+
 (defn add-node
   [app n x y]
-  (let [id (make-uuid)]
+  (let [id (str (make-uuid))]
     (om/transact! app [:nodes] #(assoc % id {:id id :type n :node ((get-in webaudio/node-types [n :create-fn])) :x x :y y}))))
 
 (defn toggle-menu [{:keys [x y cursor]}]
@@ -135,6 +156,7 @@
   (render [_]
           (html
            [:div.patcher
+            (om/build clipboard app {})
             (om/build contextmenu app {})
             (om/build-all audio-node (vals (:nodes app)) {:key :id})
             (om/build wire-canvas app {})])))
