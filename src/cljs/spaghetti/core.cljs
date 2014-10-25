@@ -74,10 +74,10 @@
 (defn calc-wire [{:keys [a b]} nodes]
   (let [node-a (get-in nodes [a])
         node-b (get-in nodes [b])
-        x1 (+ (:x node-a) 300)
-        y1 (+ (:y node-a) 165)
-        x2 (+ (:x node-b) 100)
-        y2 (+ (:y node-b) 65)]
+        x1     (+ (:x node-a) 300)
+        y1     (+ (:y node-a) 165)
+        x2     (+ (:x node-b) 100)
+        y2     (+ (:y node-b) 65)]
     {:x1 x1 :y1 y1 :x2 x2 :y2 y2}))
 
 (defcomponent wire [{:keys [wire nodes]} owner {:keys [app]}]
@@ -88,7 +88,9 @@
     (.connect (:node (get-in nodes [(:a wire)])) (:node (get-in nodes [(:b wire)]))))
   (render[_]
          (let [{:keys [x1 y1 x2 y2]} (calc-wire wire nodes)]
-           (html [:line {:onClick #(break-wire app wire) :x1 x1 :y1 y1 :x2 x2 :y2 y2 :stroke "#444" :stroke-width 1}]))))
+           (html [:path {:onClick #(break-wire app wire)
+                         :d (str "M" x1 "," y1 " Q" (/ (+ x1 x2) 2) "," (+ (max y1 y2) 40) " " x2 "," y2)
+                         :fill "none" :stroke "#444" :stroke-width 1}]))))
 
 (defcomponent wire-canvas [app owner]
   (render [_]
