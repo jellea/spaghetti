@@ -21,8 +21,8 @@
 
 (defonce wiring (atom {:a nil :b nil}))
 
-(def w (t/writer :json {:handlers {}}))
-(def r (t/reader :json {:handlers {}}))
+(def r (t/reader :json {:handlers webaudio/audio-read-handlers}))
+(def w (t/writer :json {:handlers webaudio/audio-write-handlers}))
 
 (defn focus-input [e app owner]
   (if (or (.-ctrlKey e) (.-metaKey e))
@@ -31,9 +31,10 @@
       (.select node))))
 
 (defn paste-state [app owner]
-  (let [input-data (.-value (om/get-node owner))
-        data       (t/read r input-data)]
-    (om/update! app data)))
+  (let [input-data (.-value (om/get-node owner))]
+    (prn (t/read r input-data))
+    ; wanted:
+    #_(om/update! app (t/read r input-data))))
 
 (defcomponent clipboard [app owner]
   (did-mount [_]
@@ -81,7 +82,8 @@
 
 (defcomponent wire [{:keys [wire nodes]} owner {:keys [app]}]
   (will-unmount [_]
-    (.disconnect (:node (get-in nodes [(:a wire)])) (:node (get-in nodes [(:b wire)]))))
+    ; this currently breaks the scope, because you can only disconnect everything from the output
+    (.disconnect (:node (get-in nodes [(:a wire)])) 0))
   (did-mount [_]
     (.connect (:node (get-in nodes [(:a wire)])) (:node (get-in nodes [(:b wire)]))))
   (render[_]
