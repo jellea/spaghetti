@@ -5,7 +5,7 @@
             [goog.events :as events]
             [cognitect.transit :as t]
             [spaghetti.uuid :refer [make-uuid]]
-            [spaghetti.webaudio :as webaudio :refer [node-types ctx midi]]
+            [spaghetti.webaudio :as webaudio :refer [node-types ctx]]
             [om-tools.core :refer-macros [defcomponent]]
             [cljs.core.async :as async :refer [<! >! chan put! sliding-buffer close!]]
             [sablono.core :as html :refer-macros [html]]))
@@ -25,27 +25,31 @@
 (def w (t/writer :json {:handlers webaudio/audio-write-handlers}))
 
 (defn focus-input [e app owner]
-  (if (or (.-ctrlKey e) (.-metaKey e))
+  (if (and (or (.-ctrlKey e) (.-metaKey e)) (not= (.-keyCode e) 86))
     (let [node (om/get-node owner)]
+      (prn "focus: " (t/write w @app))
       (set! (.-value node) (t/write w @app))
       (.select node))))
 
 (defn paste-state [app owner]
-  (let [input-data (.-value (om/get-node owner))]
-    (prn (t/read r input-data))
-    ; wanted:
-    #_(om/update! app (t/read r input-data))))
+  (let [input-data (.-value (om/get-node owner))
+        new-state (t/read r input-data)]
+     (prn "paste: " new-state)
+     (om/update! app new-state)))
 
 (defcomponent clipboard [app owner]
   (did-mount [_]
-             (.listen goog/events js/document "keydown" #(focus-input % app owner)))
+    (.listen goog/events js/document "keydown" #(focus-input % app owner)))
   (render [_]
-          (html [:input {:type "textarea" :style {:display "none"} :value "" :onPaste #(paste-state app owner)}])))
+          (html [:input {:type "textarea" ;:style {:opacity 0}
+                         :onPaste (fn [] (js/setTimeout (paste-state app owner) 200))
+                         }])))
 
 (defn add-node
   [app n x y]
   (let [id (str (make-uuid))]
-    (om/transact! app [:nodes] #(assoc % id {:id id :type n :node ((get-in webaudio/node-types [n :create-fn])) :x x :y y}))))
+    (om/transact! app [:nodes] #(assoc % id {:id id :type n :x x :y y
+                                             :node ((get-in webaudio/node-types [n :create-fn]))}))))
 
 (defn toggle-menu [{:keys [x y cursor]}]
   (om/update! cursor :menu {:x x :y y :visible (not (:visible (:menu @cursor)))}))
@@ -98,10 +102,14 @@
                  (for [w (:wires app)]
                    (om/build wire {:wire w :nodes (:nodes app)} {:opts {:app app}}))])))
 
-(defcomponent port [app owner {:keys [parentid]}]
+(defn change-port-value [value port-name owner audio-node]
+  (om/set-state! owner :value value)
+  (.linearRampToValueAtTime (aget audio-node (name port-name)) value (+ (.-currentTime ctx) 2)))
+
+(defcomponent port [app owner {:keys [parentid audio-node]}]
   (init-state [_]
               {:selected false
-               :value (:default app)})
+               :value    (:default app)})
   (render-state [_ {:keys [selected value]}]
     (html
      (cond
@@ -109,7 +117,7 @@
       (= (:type app) :choices) [:div.io.choise.input {:onClick #(start-wiring {:ab :b :portid parentid})} (str (name (:n app)))
                                 [:span.value value]]
       (= (:type app) :number) [:div.io.number.input (str (name (:n app)))
-                               [:span.value value]]
+                               [:span.value {:onClick #(change-port-value (js/prompt) (:n app) owner audio-node)} value]]
       :default [:div.io.input {:onClick #(start-wiring {:ab :b :portid parentid})} (name app)]))))
 
 (defn handle-drag-event [cursor owner evt-type e]
@@ -151,7 +159,7 @@
      [:div.node {:class (name type) :style {:transform (str "translate(" x "px," y "px)")}}
       [:h2 (name type)]
       ; give number to port
-        (om/build-all port (take 6 (vec (get-in webaudio/node-types [type :io]))) {:opts {:parentid id}})
+        (om/build-all port (take 6 (vec (get-in webaudio/node-types [type :io]))) {:opts {:parentid id :audio-node node}})
         (om/build port :output {:opts {:parentid id}})
         [:svg.canvas {:ref "draggable"}]])))
 

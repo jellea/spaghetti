@@ -3,23 +3,25 @@
 (defonce ctx (js/AudioContext.))
 ;(defonce midi (js/WebMIDIAPIWrapper. true))
 
-(defonce node-types {:OscillatorNode {:transit-tag "wa-oscillator" :mount-fn (fn [node] (.start node)) :create-fn #(.createOscillator ctx) :io
+(defonce node-types {
+                     :OscillatorNode {:transit-tag "wa-oscillator" :mount-fn (fn [node] (.start node)) :create-fn #(.createOscillator ctx) :io
                                       [{:n :type :type :choices :choices ["sine" "triangle" "sawtooth" "square"]
                                         :default "sine"} {:n :frequency :type :number :default 440} {:n :detune :type :number :default 0}]}
                      :MidiNode {:transit-tag "wm-midi" :create-fn #(js/WebMIDIAPIWrapper.) :io [{:n :channel :type :number :default 1} {:n :type :type :choices :choices ["noteon" "noteoff" "poly aftertouch"] :default "noteon"}]}
                      :GainNode {:transit-tag "wa-gain" :create-fn #(.createGain ctx) :io [:input {:n :gain :type :number :default 1}]}
-                    ; :DelayNode {:create-fn #(.createDelay ctx) :io [:input :delayTime]}
+                     :DelayNode {:create-fn #(.createDelay ctx) :io [:input :delayTime]}
   ;                   :AudioBufferSourceNode {:create-fn #(.createBuffer ctx) :io [:playbackRate :loop :loopStart :loopEnd :buffer]}
                    ;  :PannerNode {:create-fn #(.createPanner ctx) :io [:input :panningModel :distanceModel :refDistance :maxDistance :rolloffFactor :coneInnerAngle :coneOuterAngle :coneOuterGain]}
                   ;   :ADSRNode {:create-fn #(js/ADSR.) :io [:start :stop {:n :attack :type :number :default 0} {:n :decay :type :number :default 0} {:n :sustain :type :number :default 1} {:n :release :type :number :default 0}]}
                   ;   :ConvolverNode {:create-fn #(.createConvolver ctx) :io [:input :buffer :normalize]}
-                  ;  :DynamicsCompressorNode {:create-fn #(.createDynamicsCompressor ctx) :io [:input :threshold :knee :ratio :reduction :attack :release]}
+                     :DynamicsCompressorNode {:create-fn #(.createDynamicsCompressor ctx) :io [:input :threshold :knee :ratio :reduction :attack :release]}
                      :BiquadFilterNode {:transit-tag "wa-biquadfilter" :create-fn #(.createBiquadFilter ctx) :io [:input {:n :type :type :choices :choices ["lowpass" "highpass" "bandpass" "lowshelf" "highshelf" "peaking" "notch" "allpass"] :default "lowpass"} {:n :frequency :type :number :default 350} {:n :Q :type :number :default 1} {:n :detune :type :number :default 0} {:n :gain :type :number :default 0}]}
                      :WaveShaperNode {:transit-tag "wa-waveshaper" :create-fn #(.createWaveShaper ctx) :io [:input :curve :oversample]}
                      :AudioDestinationNode {:transit-tag "wa-destination" :mount-fn (fn [node] (.connect node (.-destination ctx))) :create-fn #(.createGain ctx) :io [:input]}
                      :ChannelSplitterNode {:transit-tag "wa-splitter" :create-fn #(.createChannelSplitter ctx) :io [:input :output]}
                      :ChannelMergerNode {:transit-tag "wa-merger" :create-fn #(.createChannelMerger ctx) :io [:input1 :input2]}})
-
+(map
+ node-types)
 
 (defn gain-read-handler [x]
   (.createGain ctx))
@@ -28,19 +30,19 @@
   (.createOscillator ctx))
 
 (def audio-read-handlers
-  {"wa-gain" gain-read-handler
-   "wa-oscillator" oscil-read-handler})
+  {"gain" gain-read-handler
+   "oscillator" oscil-read-handler})
 
 (deftype ^:no-doc GainNodeHandler []
          Object
-         (tag [_ v] "wa-gain")
-         (rep [_ v] "wa-gain")
+         (tag [_ v] "gain")
+         (rep [_ v] "gain")
          (stringRep [this v] nil))
 
 (deftype ^:no-doc OscillatorNodeHandler []
          Object
-         (tag [_ v] "wa-oscillator")
-         (rep [_ v] "wa-oscillator")
+         (tag [_ v] "oscillator")
+         (rep [_ v] "oscillator")
          (stringRep [this v] nil))
 
 (def audio-write-handlers {(type (.createOscillator ctx)) (OscillatorNodeHandler.)

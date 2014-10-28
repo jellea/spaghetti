@@ -1,5 +1,6 @@
 .node {
-    font-family: Didot-italic, Georgia;
+    font-family: Didot-italic, "Didot LT STD", Garamond, "Times New Roman", serif;
+    font-style: italic;
     display: inline-block;
     margin-left: 100px;
     z-index: 50;
@@ -81,7 +82,7 @@
     z-index: 200;
 }
 
-.io .number{
+.io.number .value{
     cursor: ns-resize;
 }
 

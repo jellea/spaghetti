@@ -35,9 +35,15 @@
                              :compiler {:output-to     "resources/public/js/app.js"
                                         :output-dir    "resources/public/js/out"
                                         :source-map    "resources/public/js/out.js.map"
-                                        :preamble      ["react/react.min.js"]
-                                        :externs       ["react/externs/react.js"]
                                         :optimizations :none
+                                        :preamble      ["react/react.min.js" "public/js/adsr/index.js"
+                                                        "public/js/WebMIDIAPIWrapper/js/WebMIDIAPIWrapper.js"
+                                                        "public/js/hammerjs/hammerjs.min.js"
+                                                        "public/js/wavy-jones/wavy-jones.js"]
+                                        :externs       ["react/externs/react.js" "public/js/adsr/adsr.externs.js"
+                                                        "public/js/WebMIDIAPIWrapper/WebMIDIAPIWrapper.externs.js"
+                                                        "public/js/hammerjs/hammerjs.externs.js"
+                                                        "public/js/wavy-jonewavy-jones.externs.js"]
                                         :pretty-print  true}}}}
 
   :profiles {:dev {:repl-options {:init-ns spaghetti.server
@@ -56,7 +62,6 @@
                        :cljsbuild {:builds {:app
                                             {:source-paths ["env/prod/cljs"]
                                              :compiler
-                                             :preamble ["react/react.min.js" "hammerjs/hammer.js"]
-                                             :externs ["react/externs/react.js" "hammer.extern.js"]
                                              {:optimizations :advanced
-                                              :pretty-print false}}}}}})
+                                              :pretty-print false
+                                              }}}}}})

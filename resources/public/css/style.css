@@ -1,5 +1,6 @@
 body{
-    font-family: Didot-italic, Georgia;
+    font-family: Didot-italic, "Didot LT STD", Garamond, "Times New Roman", serif;
+    font-style: italic;
     font-weight: 100;
     color: #444;
     background-color: #FEFFF8;
