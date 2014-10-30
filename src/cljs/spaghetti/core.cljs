@@ -27,23 +27,19 @@
 (defn focus-input [e app owner]
   (if (and (or (.-ctrlKey e) (.-metaKey e)) (not= (.-keyCode e) 86))
     (let [node (om/get-node owner)]
-      (prn "focus: " (t/write w @app))
       (set! (.-value node) (t/write w @app))
       (.select node))))
 
 (defn paste-state [app owner]
-  (let [input-data (.-value (om/get-node owner))
-        new-state (t/read r input-data)]
-     (prn "paste: " new-state)
-     (om/update! app new-state)))
+  (let [input-data (.-value (om/get-node owner))]
+     (om/update! app (t/read r input-data))))
 
 (defcomponent clipboard [app owner]
   (did-mount [_]
     (.listen goog/events js/document "keydown" #(focus-input % app owner)))
   (render [_]
-          (html [:input {:type "textarea" ;:style {:opacity 0}
-                         :onPaste (fn [] (js/setTimeout (paste-state app owner) 200))
-                         }])))
+          (html [:input {:type "textarea" :style {:opacity 0}
+                         :onPaste (fn [] (js/setTimeout #(paste-state app owner) 30))}])))
 
 (defn add-node
   [app n x y]
