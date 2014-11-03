@@ -72,5 +72,5 @@ body{
     position: absolute;
     top: 0px;
     left: 0px;
-    -webkit-animation: fadein 0.2s ease-out;
+    -webkit-animation: fadein 0.3s ease-out;
 }

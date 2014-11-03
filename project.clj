@@ -38,7 +38,7 @@
                                         :optimizations :none
                                         :preamble      ["react/react.min.js" "public/js/adsr/index.js"
                                                         "public/js/WebMIDIAPIWrapper/js/WebMIDIAPIWrapper.js"
-                                                        "public/js/hammerjs/hammerjs.min.js"
+                                                        "public/js/hammerjs/hammer.min.js"
                                                         "public/js/wavy-jones/wavy-jones.js"]
                                         :externs       ["react/externs/react.js" "public/js/adsr/adsr.externs.js"
                                                         "public/js/WebMIDIAPIWrapper/WebMIDIAPIWrapper.externs.js"
@@ -47,6 +47,7 @@
                                         :pretty-print  true}}}}
 
   :profiles {:dev {:repl-options {:init-ns spaghetti.server
+                                  :timeout 120000
                                   :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                    :plugins [[lein-figwheel "0.1.4-SNAPSHOT"]]
                    :figwheel {:http-server-root "public"

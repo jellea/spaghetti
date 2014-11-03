@@ -53,7 +53,7 @@
 (defcomponent contextmenu [{{x :x y :y visible :visible} :menu :as app} owner]
   (render [_]
           (html
-             [:ul.contextmenu {:style {:display (if visible "block" "none") :transform (str "translate(" x "px," y "px)")}}
+             [:ul.contextmenu {:style {:display (if visible "block" "none") :-webkit-transform (str "translate(" x "px," y "px)")}}
               (for [n (keys webaudio/node-types)]
                 [:li {:onClick #(do (add-node app n (- x 150) (- y 100))
                                     (toggle-menu {:x x :y y :cursor app}))} (str "+ "(name n))])])))
@@ -152,7 +152,7 @@
         (events/listen htmlelem "mouseup" #(put! mouse-chan [:up %]))))
   (render-state [_ _]
     (html
-     [:div.node {:class (name type) :style {:transform (str "translate(" x "px," y "px)")}}
+     [:div.node {:class (name type) :style {:-webkit-transform (str "translate(" x "px," y "px)")}}
       [:h2 (name type)]
       ; give number to port
         (om/build-all port (take 6 (vec (get-in webaudio/node-types [type :io]))) {:opts {:parentid id :audio-node node}})
