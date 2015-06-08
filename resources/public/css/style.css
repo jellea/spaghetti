@@ -1,3 +1,8 @@
+* {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 body{
     font-family: Didot-italic, "Didot LT STD", Garamond, "Times New Roman", serif;
     font-style: italic;

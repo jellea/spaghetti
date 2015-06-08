@@ -100,9 +100,13 @@
 
 (defn change-port-value [value port-name owner audio-node]
   (om/set-state! owner :value value)
-  (.linearRampToValueAtTime (aget audio-node (name port-name)) value (+ (.-currentTime ctx) 2)))
+  (.linearRampToValueAtTime (aget audio-node (name port-name)) value (+ (.-currentTime ctx) 0.01)))
 
-(defcomponent port [app owner {:keys [parentid audio-node]}]
+(defn change-port-choice [value owner audio-node]
+  (om/set-state! owner :value value)
+  (set! (-> audio-node .-type) value))
+
+(defcomponent port [app owner {:keys [parentid audio-node node-type]}]
   (init-state [_]
               {:selected false
                :value    (:default app)})
@@ -110,8 +114,11 @@
     (html
      (cond
       (= app :output) [:div.io.output {:onClick #(start-wiring {:ab :a :portid parentid})} "output"]
-      (= (:type app) :choices) [:div.io.choise.input {:onClick #(start-wiring {:ab :b :portid parentid})} (str (name (:n app)))
-                                [:span.value value]]
+      (= (:type app) :choices) [:div.io.choise.input {} (str (name (:n app)))
+                                [:span.value [:select {:onChange #(change-port-choice (-> % .-target .-value) owner audio-node)
+                                                       :value value}
+                                              (for [choice (:choices app)]
+                                                [:option {:value choice} choice])]]]
       (= (:type app) :number) [:div.io.number.input (str (name (:n app)))
                                [:span.value {:onClick #(change-port-value (js/prompt) (:n app) owner audio-node)} value]]
       :default [:div.io.input {:onClick #(start-wiring {:ab :b :portid parentid})} (name app)]))))
@@ -155,7 +162,7 @@
      [:div.node {:class (name type) :style {:-webkit-transform (str "translate(" x "px," y "px)")}}
       [:h2 (name type)]
       ; give number to port
-        (om/build-all port (take 6 (vec (get-in webaudio/node-types [type :io]))) {:opts {:parentid id :audio-node node}})
+        (om/build-all port (take 6 (vec (get-in webaudio/node-types [type :io]))) {:opts {:parentid id :audio-node node :node-type type}})
         (om/build port :output {:opts {:parentid id}})
         [:svg.canvas {:ref "draggable"}]])))
 
